@@ -33,10 +33,72 @@ The project employs several advanced signal processing and machine learning tech
 - **Discrete Wavelet Transform (DWT)**: For time-frequency analysis of PPG signals
 - **Empirical Mode Decomposition (EMD)**: For adaptive signal decomposition
 - **Heart Rate Variability (HRV) Analysis**: For extracting cardiac features
+- **Wavelet Scattering Network (WSN)**: For extracting robust features from PPG signals
 
 ### Machine Learning Models
-- **VGGNet-based Deep Learning**: Custom neural network architecture for PPG signal classification
+- **VGGNet-based Deep Learning**: Custom neural network architecture for PPG classification
 - **Multi-class Classification**: For distinguishing between different sleep stages and disorders
+- **CNN Architecture**: Specialized convolutional neural network for sleep disorder detection
+
+## CNN Model Architecture
+
+The proposed CNN model for sleep disorder classification has the following architecture:
+
+| Layer/Block | Description | Shape |
+|-------------|-------------|-------|
+| Input | Input shape adjusted based on the PPG signal | (3840, 1) |
+| Residual Block | 1D-Convolution (filters, 3) → BatchNorm → Leaky ReLU → Add shortcut → Max Pool (2) for filters in [16, 16, 32, 32, 64, 64, 128, 256] repeated eight times | (3840, 16) |
+| Reshape | Group data into 15 windows | (15, 256) |
+| Time-Distributed Dense | Dense (128, activation='Leaky Relu') | (15, 128) |
+| TCN Block | 1D-Convolution (128, 7, dilation_rate) → BatchNorm → Leaky ReLU → Dropout (0.2) → Add shortcut for dilation rates in [1, 2, 4, 8, 16] repeated twice | (15, 128) |
+| Fully Connected Layer | 1D-Convolution (7, 1, activation='softmax') | (15, 7) |
+| Output | Select class with highest prediction | (15, 1) |
+
+The model processes 30-second PPG signals with a shape of (3840, 1) and consists of:
+
+1. **Feature Extraction Block**: Eight stacked Residual Convolutional (ResConv) blocks with 1D convolutions, batch normalization, Leaky ReLU activations, and MaxPooling layers.
+2. **Windowing Layer**: Reshapes the output to establish temporal windows, preparing data for the TCN blocks.
+3. **Temporal Convolutional Network (TCN) Blocks**: Two TCN blocks with dilated convolutions to capture long-term dependencies in the sequence data.
+4. **Output Layer**: 1D convolutional layer with softmax activation for final classification.
+
+## Training and Performance
+
+The CNN model was trained with the following specifications:
+- Batch size: 24
+- Training/Testing split: 80%/20%
+- Learning rate: 0.001
+- Optimizer: Adam
+- Hardware: NVIDIA-RTX A4000 GPU with 64GB RAM
+- Training epochs: 80
+- Implementation: Python 3.10 with TensorFlow and scikit-learn
+
+## Results
+
+The model's performance was evaluated using 79,074 PPG epochs collected from 77 participants, including healthy individuals and those with six different sleep disorders:
+
+### Performance Metrics
+- **CNN-based Model**: 93.42% overall accuracy, 0.91 Kappa value
+- **WSN-based Model with KNN classifier**: 81.8% accuracy, 0.75 Kappa value
+
+### Misclassification Rates (CNN Model)
+- Healthy: 7.1%
+- Insomnia: 13.65%
+- Narcolepsy: 15.36%
+- NFLE (Nocturnal Frontal Lobe Epilepsy): 5.59%
+- PLM (Periodic Limb Movement): 6.72%
+- RBD (REM Sleep Behavior Disorder): 3.53%
+- SDB (Sleep-Disordered Breathing): 3.3%
+
+### Misclassification Rates (WSN Model)
+- Healthy: 46.2%
+- Insomnia: 26.9%
+- Narcolepsy: 44.5%
+- NFLE: 9.4%
+- PLM: 38.1%
+- RBD: 10.4%
+- SDB: 7.1%
+
+The CNN-based approach significantly outperformed traditional machine learning methods using WSN features, demonstrating the effectiveness of deep learning for sleep disorder classification from PPG signals.
 
 ## Project Structure
 
@@ -63,18 +125,23 @@ The project focuses on classifying sleep into different stages:
 Additionally, the system aims to detect sleep disorders such as:
 - Sleep Apnea
 - Insomnia
-- Periodic Limb Movement Disorder
-- Restless Leg Syndrome
+- Narcolepsy
+- Nocturnal Frontal Lobe Epilepsy (NFLE)
+- Periodic Limb Movement (PLM)
+- REM Sleep Behavior Disorder (RBD)
+- Sleep-Disordered Breathing (SDB)
 
 ## Requirements
 
 - Python 3.x
 - PyTorch
+- TensorFlow
 - NumPy
 - SciPy
 - Matplotlib
 - EMD-signal
-- MATLAB (for some preprocessing steps)
+- scikit-learn
+- MATLAB (for WSN analysis and some preprocessing steps)
 
 ## Future Work
 
@@ -82,6 +149,7 @@ Additionally, the system aims to detect sleep disorders such as:
 - Expansion of the dataset to improve model generalization
 - Development of a user-friendly interface for sleep analysis
 - Validation in clinical settings
+- Exploration of additional deep learning architectures for improved accuracy
 
 ## License
 
